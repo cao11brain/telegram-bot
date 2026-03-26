@@ -3,13 +3,12 @@ from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, Request
 
-from app.core.config import settings
 from app.services.content_extractor import (
     build_extraction_failure_message,
     clean_article_text,
     extract_content,
 )
-from app.services.llm_service import detect_korean_ratio, translate_and_insight
+from app.services.llm_service import summarize_and_insight
 from app.services.telegram_service import send_long_message
 
 router = APIRouter()
@@ -58,14 +57,8 @@ async def process_message(update: dict) -> None:
                 "PDF 본문 추출에 실패하여 arXiv 초록 기반으로 분석합니다.",
             )
 
-        mode = (
-            "summarize"
-            if detect_korean_ratio(article_text) >= settings.korean_ratio_threshold
-            else "translate"
-        )
-        result = await translate_and_insight(
+        result = await summarize_and_insight(
             article_text=article_text,
-            mode=mode,
             source_type=content.source_type,
             title=content.title,
         )
@@ -77,4 +70,3 @@ async def process_message(update: dict) -> None:
 def extract_url(text: str) -> Optional[str]:
     match = re.search(r"(https?://[^\s]+)", text)
     return match.group(1) if match else None
-

@@ -1,5 +1,4 @@
 import asyncio
-import re
 
 from openai import OpenAI
 
@@ -11,30 +10,21 @@ _client = OpenAI(
 )
 
 
-def detect_korean_ratio(text: str) -> float:
-    korean_chars = len(re.findall(r"[가-힣]", text))
-    alpha_chars = len(re.findall(r"[A-Za-z가-힣]", text))
-    if alpha_chars == 0:
-        return 0.0
-    return korean_chars / alpha_chars
-
-
-async def translate_and_insight(
+async def summarize_and_insight(
     article_text: str,
-    mode: str,
     source_type: str,
     title: str,
 ) -> str:
     prompt = build_prompt(
         article_text=article_text,
-        mode=mode,
         source_type=source_type,
         title=title,
     )
-    return await asyncio.to_thread(_translate_and_insight_sync, prompt)
+    result = await asyncio.to_thread(_summarize_and_insight_sync, prompt)
+    return _normalize_llm_output(result)
 
 
-def _translate_and_insight_sync(prompt: str) -> str:
+def _summarize_and_insight_sync(prompt: str) -> str:
     response = _client.responses.create(
         model=settings.azure_openai_deployment,
         input=prompt,
@@ -42,69 +32,9 @@ def _translate_and_insight_sync(prompt: str) -> str:
     return response.output_text.strip()
 
 
-def build_prompt(article_text: str, mode: str, source_type: str, title: str) -> str:
-    task_section = """
-[작업 모드]
-- 번역 + 인사이트
-
-[작업 규칙]
-1. 원문을 한국어로 번역한다.
-2. 직역 우선으로 번역한다.
-3. 원문에 없는 내용을 추가하지 않는다.
-4. 문장을 임의로 요약하거나 생략하지 않는다.
-5. 고유명사, 숫자, 날짜, 회사명, 제품명은 정확히 유지한다.
-6. 과도하게 자연스럽게 바꾸기보다 원문 의미 보존을 우선한다.
-
-[출력 형식]
-[번역]
-여기에 전체 번역문
-""".strip()
-
-    output_section = """
-[출력 형식]
-[번역]
-여기에 전체 번역문
-
-[인사이트]
-1. 제목: ...
-   설명: ...
-2. 제목: ...
-   설명: ...
-3. 제목: ...
-   설명: ...
-""".strip()
-
-    if mode == "summarize":
-        task_section = """
-[작업 모드]
-- 요약 + 인사이트
-
-[작업 규칙]
-1. 번역하지 말고 한국어로 요약한다.
-2. 핵심 내용, 근거, 결론을 빠짐없이 담아 구조적으로 요약한다.
-3. 원문에 없는 내용을 추가하지 않는다.
-4. 과장하거나 단정하지 않는다.
-
-[출력 형식]
-[요약]
-여기에 핵심 요약문
-""".strip()
-        output_section = """
-[출력 형식]
-[요약]
-여기에 핵심 요약문
-
-[인사이트]
-1. 제목: ...
-   설명: ...
-2. 제목: ...
-   설명: ...
-3. 제목: ...
-   설명: ...
-""".strip()
-
+def build_prompt(article_text: str, source_type: str, title: str) -> str:
     return f"""
-당신은 외신 번역 및 비즈니스 분석 보조자다.
+당신은 기사, 블로그, 논문을 짧고 실용적으로 정리하는 한국어 분석가다.
 
 아래 입력 정보를 읽고 다음 규칙을 반드시 지켜라.
 
@@ -112,24 +42,57 @@ def build_prompt(article_text: str, mode: str, source_type: str, title: str) -> 
 - 정확한 한국어 분석가
 - 실무형 비즈니스 분석가
 
-{task_section}
+[작업 규칙]
+1. 전문 번역은 하지 말고, 한국어로 핵심만 요약한다.
+2. 문단형 설명 대신 bullet 형태의 개조식 문장만 사용한다.
+3. 원문에 없는 내용은 추가하지 않는다.
+4. 과장하거나 단정하지 않는다.
+5. 고유명사, 숫자, 날짜, 회사명, 제품명은 정확히 유지한다.
+6. 전체 분량은 텔레그램 한 메시지에 들어갈 정도로 짧게 유지한다.
+7. 각 bullet은 1~2개의 짧은 문장 또는 짧은 개조식 표현으로 쓴다.
+8. 중복되는 내용은 합치고, 장황한 배경 설명은 생략한다.
 
 [인사이트 규칙]
 1. 인사이트는 반드시 3개만 작성한다.
-2. 단순 요약이 아니라 아래 3가지를 포함한다.
-   - 왜 중요한가
-   - 어떤 변화 또는 트렌드를 보여주는가
-   - 기업, 실무자, 투자자 관점에서 어떤 시사점이 있는가
+2. 각 인사이트는 왜 중요한지와 실무적 시사점을 함께 담는다.
 3. 추측은 하지 말고, 원문을 근거로 해석하라.
 
-{output_section}
+[출력 형식]
+[핵심 요약]
+- bullet 4~6개
+
+[인사이트]
+- bullet 3개
+
+[출력 제약]
+- 반드시 위 두 섹션만 출력한다.
+- 각 줄은 가능한 짧게 유지한다.
+- 번호 목록을 쓰지 말고 '-' bullet만 사용한다.
+- 서론, 결론, 전체 번역, 부가 설명을 추가하지 않는다.
 
 [메타데이터]
 - 소스 타입: {source_type}
 - 제목: {title}
-- 처리 모드: {mode}
 
 [원문]
 {article_text}
 """.strip()
 
+
+def _normalize_llm_output(text: str) -> str:
+    lines = [line.rstrip() for line in text.splitlines()]
+    normalized_lines = []
+    previous_blank = False
+
+    for line in lines:
+        stripped = line.strip()
+        if not stripped:
+            if not previous_blank:
+                normalized_lines.append("")
+            previous_blank = True
+            continue
+
+        normalized_lines.append(stripped)
+        previous_blank = False
+
+    return "\n".join(normalized_lines).strip()
