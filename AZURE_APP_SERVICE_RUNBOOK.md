@@ -59,3 +59,18 @@ python -m playwright install chromium && gunicorn -w 2 -k uvicorn.workers.Uvicor
 
 This option can increase cold-start and restart time.
 
+## 8) GitHub Actions CI/CD
+
+Repository includes a workflow at `.github/workflows/deploy.yml`.
+
+Add these GitHub repository secrets before using it:
+
+- `ACR_USERNAME`
+- `ACR_PASSWORD`
+- `AZURE_WEBAPP_PUBLISH_PROFILE`
+
+The workflow runs on pushes to `main` and:
+
+1. Builds the Docker image from `Dockerfile`
+2. Pushes it to `sjtelebot.azurecr.io/telegram-bot`
+3. Deploys the new image to `telegram-translater-bot-sjsj`
