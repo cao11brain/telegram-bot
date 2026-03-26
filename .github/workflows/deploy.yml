@@ -9,7 +9,6 @@ on:
 env:
   ACR_LOGIN_SERVER: sjtelebot.azurecr.io
   IMAGE_NAME: telegram-bot
-  WEBAPP_NAME: telegram-translater-bot-sjsj
 
 jobs:
   build-and-deploy:
@@ -34,10 +33,3 @@ jobs:
           docker tag $ACR_LOGIN_SERVER/$IMAGE_NAME:$IMAGE_TAG $ACR_LOGIN_SERVER/$IMAGE_NAME:latest
           docker push $ACR_LOGIN_SERVER/$IMAGE_NAME:$IMAGE_TAG
           docker push $ACR_LOGIN_SERVER/$IMAGE_NAME:latest
-
-      - name: Deploy to Azure Web App
-        uses: azure/webapps-deploy@v3
-        with:
-          app-name: ${{ env.WEBAPP_NAME }}
-          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          images: ${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}

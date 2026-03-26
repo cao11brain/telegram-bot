@@ -67,10 +67,9 @@ Add these GitHub repository secrets before using it:
 
 - `ACR_USERNAME`
 - `ACR_PASSWORD`
-- `AZURE_WEBAPP_PUBLISH_PROFILE`
 
 The workflow runs on pushes to `main` and:
 
 1. Builds the Docker image from `Dockerfile`
 2. Pushes it to `sjtelebot.azurecr.io/telegram-bot`
-3. Deploys the new image to `telegram-translater-bot-sjsj`
+3. App Service pulls the updated `latest` image automatically through container continuous deployment
