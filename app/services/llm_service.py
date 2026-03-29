@@ -72,7 +72,7 @@ def build_prompt(article_text: str, source_type: str, title: str) -> str:
 
 [관련 종목 규칙]
 1. [관련 종목] 섹션에는 코스피 또는 코스닥 상장 종목만 정확히 3개 작성한다.
-2. 각 줄은 반드시 '종목명: 영향 방향, 투자 체크포인트' 형식으로 작성한다.
+2. 각 줄은 반드시 '종목명: 영향 방향 ➡️ 투자 체크포인트' 형식으로 작성한다.
 3. 종목명은 종목명만 쓰고, 종목코드나 시장 표기는 붙이지 않는다.
 4. 영향 방향은 '수혜 가능', '부담 가능', '중립~수혜 가능', '변동성 확대 가능'처럼 짧게 쓴다.
 5. 투자 체크포인트는 아래 관점 중 기사와 가장 관련 있는 1개를 골라 한 줄로 압축한다.
@@ -85,6 +85,7 @@ def build_prompt(article_text: str, source_type: str, title: str) -> str:
    - 정책 또는 규제 민감도
 6. 직접적인 매수, 매도 권유는 하지 말고, 주식 전문가 시각의 확인 포인트를 짧게 제시한다.
 7. 억지 연결은 피하고, 기사와의 연관성이 높은 종목 3개만 선택한다.
+8. 세미콜론(;)은 사용하지 말고, 영향 방향과 체크포인트를 구분할 때 반드시 '➡️'를 사용한다.
 
 [출력 형식]
 [핵심 요약]
@@ -152,9 +153,29 @@ def _enforce_bullet_format(text: str) -> str:
             continue
 
         if section in bullet_sections and not stripped.startswith("- "):
-            fixed_lines.append(f"- {stripped.lstrip('-').strip()}")
-            continue
+            stripped = f"- {stripped.lstrip('-').strip()}"
+
+        if section == "[관련 종목]":
+            stripped = _normalize_related_stock_line(stripped)
 
         fixed_lines.append(stripped)
 
     return "\n".join(fixed_lines).strip()
+
+
+def _normalize_related_stock_line(line: str) -> str:
+    if not line.startswith("- "):
+        return line
+
+    body = line[2:].strip()
+    body = body.replace(" ; ", " ➡️ ")
+    body = body.replace("; ", " ➡️ ")
+    body = body.replace(" ;", " ➡️")
+    body = body.replace(";", " ➡️ ")
+    body = body.replace("➡️➡️", "➡️")
+
+    if "➡️" not in body and "," in body:
+        head, tail = body.split(",", 1)
+        body = f"{head.strip()} ➡️ {tail.strip()}"
+
+    return f"- {body.strip()}"

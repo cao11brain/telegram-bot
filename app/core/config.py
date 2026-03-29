@@ -15,6 +15,7 @@ class Settings:
     azure_openai_api_key: str
     azure_openai_endpoint: str
     azure_openai_deployment: str
+    app_version: str
     telegram_message_limit: int = 4000
     arxiv_min_text_length: int = 300
     generic_min_text_length: int = 500
@@ -35,8 +36,8 @@ def load_settings() -> Settings:
         azure_openai_api_key=_required_env("AZURE_OPENAI_API_KEY"),
         azure_openai_endpoint=_required_env("AZURE_OPENAI_ENDPOINT"),
         azure_openai_deployment=_required_env("AZURE_OPENAI_DEPLOYMENT"),
+        app_version=os.getenv("APP_VERSION", "dev"),
     )
 
 
 settings = load_settings()
-

@@ -3,6 +3,7 @@ from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, Request
 
+from app.core.config import settings
 from app.services.content_extractor import (
     build_extraction_failure_message,
     clean_article_text,
@@ -16,7 +17,11 @@ router = APIRouter()
 
 @router.get("/")
 def health() -> dict:
-    return {"status": "ok", "version": "v2-no-echo"}
+    return {
+        "status": "ok",
+        "version": "v2-no-echo",
+        "app_version": settings.app_version,
+    }
 
 
 @router.post("/webhook")

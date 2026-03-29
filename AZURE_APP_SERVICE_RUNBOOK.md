@@ -5,6 +5,7 @@
 ```bash
 az acr build \
   --registry <ACR_NAME> \
+  --image telegram-bot:<GIT_SHA> \
   --image telegram-bot:latest \
   .
 ```
@@ -38,7 +39,7 @@ If you must override from App Service startup command, use the same command abov
 ## 5) Health check
 
 - Endpoint: `GET /`
-- Expected response: `{"status":"ok","version":"v2-no-echo"}`
+- Expected response: `{"status":"ok","version":"v2-no-echo","app_version":"<GIT_SHA>"}` or equivalent
 
 ## 6) Operational checks
 
@@ -71,5 +72,12 @@ Add these GitHub repository secrets before using it:
 The workflow runs on pushes to `main` and:
 
 1. Builds the Docker image from `Dockerfile`
-2. Pushes it to `sjtelebot.azurecr.io/telegram-bot`
-3. App Service pulls the updated `latest` image automatically through container continuous deployment
+2. Pushes both `sjtelebot.azurecr.io/telegram-bot:<GIT_SHA>` and `sjtelebot.azurecr.io/telegram-bot:latest`
+3. Updates App Service to use the exact SHA tag image
+4. Restarts App Service so the running version is explicit and traceable
+
+Required GitHub secrets:
+
+- `ACR_USERNAME`
+- `ACR_PASSWORD`
+- `AZURE_CREDENTIALS`
