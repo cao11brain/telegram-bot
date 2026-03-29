@@ -28,7 +28,7 @@ Telegram으로 전달한 링크를 읽고 한국어 요약, 인사이트, 관련
 - 관련 종목은 코스피·코스닥 종목 3개만 고르고, 각 종목별 영향 방향과 주식 투자 체크포인트를 `➡️` 구분자로 한 줄 제시
 - 전체 응답이 개조식 형식에서 벗어나지 않도록 후처리 보정 추가
 - App Service 헬스체크에 현재 실행 중인 `app_version` 노출
-- GitHub Actions가 SHA 태그 이미지를 App Service에 직접 반영하도록 구조 확장
+- GitHub Actions는 SHA 태그와 `latest` 이미지를 ACR에 push하고, App Service 재시작은 수동 운영
 
 ## Notes
 
@@ -38,4 +38,4 @@ Telegram으로 전달한 링크를 읽고 한국어 요약, 인사이트, 관련
 - GitHub Actions 사용 시 아래 secret이 필요합니다.
   - `ACR_USERNAME`
   - `ACR_PASSWORD`
-  - `AZURE_CREDENTIALS`
+- 운영 배포 절차는 `git push origin main` 후 App Service `Restart`, 그리고 `/`의 `app_version` 확인 순서입니다.

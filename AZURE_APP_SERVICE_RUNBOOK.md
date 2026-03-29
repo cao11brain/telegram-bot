@@ -73,11 +73,11 @@ The workflow runs on pushes to `main` and:
 
 1. Builds the Docker image from `Dockerfile`
 2. Pushes both `sjtelebot.azurecr.io/telegram-bot:<GIT_SHA>` and `sjtelebot.azurecr.io/telegram-bot:latest`
-3. Updates App Service to use the exact SHA tag image
-4. Restarts App Service so the running version is explicit and traceable
+3. Leaves App Service on the registry-tracked image configuration
 
-Required GitHub secrets:
+Operational deployment flow:
 
-- `ACR_USERNAME`
-- `ACR_PASSWORD`
-- `AZURE_CREDENTIALS`
+1. `git push origin main`
+2. Wait for GitHub Actions to push the new image to ACR
+3. Restart App Service manually
+4. Check `GET /` and verify `app_version` changed to the new commit SHA
